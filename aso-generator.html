@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASO Metadata Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple-start: #667eea;
+      --purple-end:   #764ba2;
+      --bg:      #f0f2f5;
+      --surface: #ffffff;
+      --border:  #e5e7eb;
+      --text:    #111827;
+      --muted:   #6b7280;
+      --ok:      #10b981;
+      --warn:    #f59e0b;
+      --danger:  #ef4444;
+      --radius:  12px;
+      --shadow:  0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+    .header { background: linear-gradient(135deg, var(--purple-start), var(--purple-end)); color: #fff; padding: 26px 32px; }
+    .header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.3px; }
+    .header p  { margin-top: 4px; opacity: 0.85; font-size: 0.875rem; }
+
+    .main { max-width: 1280px; margin: 0 auto; padding: 28px 24px; }
+    .grid { display: grid; grid-template-columns: 340px 1fr; gap: 22px; align-items: start; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--surface); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 2px solid var(--bg); }
+    .card-title  { font-size: 0.9rem; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 5px; }
+    .form-control { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.875rem; color: var(--text); background: #fafafa; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; }
+    .form-control:focus { outline: none; border-color: var(--purple-start); background: #fff; box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }
+    select.form-control { cursor: pointer; }
+    textarea.form-control { resize: vertical; min-height: 110px; line-height: 1.55; }
+
+    .btn-primary { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--purple-start), var(--purple-end)); color: #fff; border: none; border-radius: 9px; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s; margin-top: 4px; }
+    .btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(102,126,234,0.4); }
+    .btn-primary:active:not(:disabled) { transform: none; }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .spin { width: 16px; height: 16px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box { background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 10px 13px; color: #dc2626; font-size: 0.8rem; line-height: 1.45; margin-top: 12px; display: none; }
+
+    .variant-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab { padding: 5px 14px; border: 1.5px solid var(--border); border-radius: 20px; background: #fff; font-size: 0.78rem; font-weight: 500; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .tab:hover { border-color: var(--purple-start); color: var(--purple-start); }
+    .tab.active { background: var(--purple-start); border-color: var(--purple-start); color: #fff; }
+
+    .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .platform-grid { grid-template-columns: 1fr; } }
+
+    .platform-panel { border: 1.5px solid var(--border); border-radius: 10px; padding: 16px; background: #fafbfc; }
+    .platform-header { display: flex; align-items: center; gap: 7px; font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+    .field { margin-bottom: 13px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .field-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; }
+
+    .copy-btn { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; background: #fff; border: 1px solid var(--border); border-radius: 5px; font-size: 0.68rem; font-weight: 500; color: #9ca3af; cursor: pointer; transition: all 0.15s; }
+    .copy-btn:hover { border-color: var(--purple-start); color: var(--purple-start); }
+    .copy-btn.copied { border-color: var(--ok); color: var(--ok); }
+
+    .field-input { width: 100%; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 0.85rem; font-family: inherit; color: var(--text); background: #fff; transition: border-color 0.15s; resize: none; }
+    .field-input:focus { outline: none; border-color: var(--purple-start); }
+    .field-input.over { border-color: var(--danger); background: #fff8f8; }
+
+    .count-row { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
+    .count-bar { flex: 1; height: 3px; background: #e9eaec; border-radius: 2px; overflow: hidden; }
+    .count-fill { height: 100%; border-radius: 2px; transition: width 0.2s, background-color 0.2s; }
+    .count-label { font-size: 0.68rem; font-weight: 500; min-width: 52px; text-align: right; transition: color 0.2s; }
+
+    .c-ok   { color: var(--ok); }    .c-warn { color: var(--warn); }    .c-over { color: var(--danger); font-weight: 600; }
+    .f-ok   { background: var(--ok); } .f-warn { background: var(--warn); } .f-over { background: var(--danger); }
+
+    .placeholder { text-align: center; padding: 72px 20px; color: #d1d5db; }
+    .placeholder-icon { font-size: 2.8rem; margin-bottom: 12px; }
+    .placeholder h3 { font-size: 0.95rem; color: #9ca3af; margin-bottom: 4px; font-weight: 500; }
+    .placeholder p  { font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <h1>🚀 ASO Metadata Generator</h1>
+  <p>Generate App Store &amp; Google Play metadata from your app description</p>
+</header>
+
+<main class="main">
+  <div class="grid">
+
+    <!-- Input -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⚙ Configuration</div>
+      </div>
+
+      <div class="form-group">
+        <label>App Category</label>
+        <select class="form-control" id="category">
+          <option value="utilities">Utilities</option>
+          <option value="health">Health &amp; Fitness</option>
+          <option value="finance">Finance</option>
+          <option value="travel">Travel</option>
+          <option value="productivity">Productivity</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Target Language</label>
+        <select class="form-control" id="language">
+          <option value="English">English</option>
+          <option value="German">German</option>
+          <option value="Portuguese">Portuguese</option>
+          <option value="Arabic">Arabic</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>App Description (2–3 sentences)</label>
+        <textarea class="form-control" id="description"
+          placeholder="Describe what your app does…&#10;&#10;e.g. BudgetPal is a smart expense tracker that helps you manage finances with ease. It syncs with your bank accounts and shows real-time spending insights. Beautiful charts and AI tips make saving money simple."></textarea>
+      </div>
+
+      <button class="btn-primary" id="genBtn" onclick="generate()">
+        <span id="btnIcon">✨</span>
+        <span id="btnText">Generate Metadata</span>
+      </button>
+
+      <div class="error-box" id="errorBox"></div>
+    </div>
+
+    <!-- Output -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 Generated Metadata</div>
+        <div class="variant-tabs" id="variantTabs" style="display:none"></div>
+      </div>
+      <div id="outputArea">
+        <div class="placeholder">
+          <div class="placeholder-icon">📄</div>
+          <h3>No metadata yet</h3>
+          <p>Fill in the form and click Generate</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+'use strict';
+
+// ── Feature detection: finds a key concept in the description ─────────────────
+const FEAT_PATTERNS = {
+  finance: [
+    { key: 'budget',     re: /budget|limit|allowance/i },
+    { key: 'expense',    re: /expens|spend|cost|purchas|payment/i },
+    { key: 'saving',     re: /sav|invest|compound|interest/i },
+    { key: 'income',     re: /incom|earn|salary|wage|revenue/i },
+  ],
+  health: [
+    { key: 'fitness',    re: /fitness|workout|exercis|gym|train/i },
+    { key: 'sleep',      re: /sleep|rest|insomni|bedtime/i },
+    { key: 'diet',       re: /diet|nutrition|calori|meal|food|eat/i },
+    { key: 'mindful',    re: /meditat|mindful|stress|calm|relax/i },
+  ],
+  productivity: [
+    { key: 'task',       re: /task|todo|checklist|project/i },
+    { key: 'focus',      re: /focus|concentrat|deep work|pomodoro/i },
+    { key: 'habit',      re: /habit|routine|daily|streak/i },
+    { key: 'goal',       re: /goal|target|achieve|milestone/i },
+    { key: 'note',       re: /note|memo|journal|diary|write/i },
+  ],
+  travel: [
+    { key: 'trip',       re: /trip|journey|tour|itinerary/i },
+    { key: 'hotel',      re: /hotel|accomod|stay|lodg/i },
+    { key: 'flight',     re: /flight|airline|fly|plane/i },
+    { key: 'adventure',  re: /adventur|explor|hike|discover/i },
+  ],
+  utilities: [
+    { key: 'file',       re: /file|document|pdf|folder|storage/i },
+    { key: 'battery',    re: /battery|power|charg|energy/i },
+    { key: 'speed',      re: /speed|slow|perform|boost|optim/i },
+    { key: 'wifi',       re: /wifi|network|internet|connect/i },
+  ],
+};
+
+// Translated feature words per category → key → language
+const FEAT_WORDS = {
+  finance: {
+    budget:  { English:'Budget',    German:'Budget',      Portuguese:'Orçamento',  Arabic:'ميزانية' },
+    expense: { English:'Expense',   German:'Ausgaben',    Portuguese:'Despesas',   Arabic:'مصاريف'  },
+    saving:  { English:'Savings',   German:'Ersparnisse', Portuguese:'Economia',   Arabic:'مدخرات'  },
+    income:  { English:'Income',    German:'Einkommen',   Portuguese:'Renda',      Arabic:'دخل'     },
+    _default:{ English:'Money',     German:'Geld',        Portuguese:'Dinheiro',   Arabic:'مال'     },
+  },
+  health: {
+    fitness: { English:'Fitness',   German:'Fitness',     Portuguese:'Fitness',    Arabic:'لياقة'   },
+    sleep:   { English:'Sleep',     German:'Schlaf',      Portuguese:'Sono',       Arabic:'نوم'     },
+    diet:    { English:'Diet',      German:'Ernährung',   Portuguese:'Nutrição',   Arabic:'تغذية'   },
+    mindful: { English:'Mindfulness',German:'Achtsamkeit',Portuguese:'Mindfulness',Arabic:'تأمل'   },
+    _default:{ English:'Health',    German:'Gesundheit',  Portuguese:'Saúde',      Arabic:'صحة'     },
+  },
+  productivity: {
+    task:    { English:'Task',      German:'Aufgaben',    Portuguese:'Tarefas',    Arabic:'مهام'    },
+    focus:   { English:'Focus',     German:'Fokus',       Portuguese:'Foco',       Arabic:'تركيز'   },
+    habit:   { English:'Habit',     German:'Gewohnheit',  Portuguese:'Hábito',     Arabic:'عادة'    },
+    goal:    { English:'Goal',      German:'Ziel',        Portuguese:'Meta',       Arabic:'هدف'     },
+    note:    { English:'Notes',     German:'Notizen',     Portuguese:'Notas',      Arabic:'ملاحظات' },
+    _default:{ English:'Tasks',     German:'Aufgaben',    Portuguese:'Tarefas',    Arabic:'مهام'    },
+  },
+  travel: {
+    trip:      { English:'Trip',    German:'Reise',       Portuguese:'Viagem',     Arabic:'رحلة'    },
+    hotel:     { English:'Hotel',   German:'Hotel',       Portuguese:'Hotel',      Arabic:'فندق'    },
+    flight:    { English:'Flight',  German:'Flug',        Portuguese:'Voo',        Arabic:'طيران'   },
+    adventure: { English:'Adventure',German:'Abenteuer',  Portuguese:'Aventura',   Arabic:'مغامرة'  },
+    _default:  { English:'Travel',  German:'Reise',       Portuguese:'Viagem',     Arabic:'سفر'     },
+  },
+  utilities: {
+    file:    { English:'File',      German:'Datei',       Portuguese:'Arquivo',    Arabic:'ملف'     },
+    battery: { English:'Battery',   German:'Akku',        Portuguese:'Bateria',    Arabic:'بطارية'  },
+    speed:   { English:'Speed',     German:'Geschwindigkeit',Portuguese:'Velocidade',Arabic:'سرعة'  },
+    wifi:    { English:'WiFi',      German:'WLAN',        Portuguese:'WiFi',       Arabic:'واي فاي' },
+    _default:{ English:'Device',    German:'Gerät',       Portuguese:'Dispositivo',Arabic:'جهاز'   },
+  },
+};
+
+// ── Template data: category → language → [variant0, variant1, variant2] ──────
+// {W} = detected feature word.  Strings intentionally kept comfortably under limits.
+const TEMPLATES = {
+  finance: {
+    English: [
+      { asTitle:'{W} Tracker App',          asSub:'Track Every {W} Daily',      asKw:'budget,expense,money,finance,tracker,savings,bank,income,bills,cash,wallet,spending', gpTitle:'{W} Tracker App',       gpDesc:'Track budgets, expenses & income in real time. Smart financial insights.' },
+      { asTitle:'Smart {W} Manager',         asSub:'Save More, Spend Smarter',    asKw:'money,manager,finance,save,investment,wealth,income,bank,cash,goals,rich,budget',    gpTitle:'Smart {W} Manager',      gpDesc:'Take control of your finances. Save more & reach your money goals faster.' },
+      { asTitle:'Personal Finance Planner',  asSub:'{W} Freedom Starts Here',    asKw:'finance,planner,goals,budget,income,wealth,investment,bank,spending,bills,rich,net', gpTitle:'Personal Finance Planner',gpDesc:'Achieve financial freedom with smart budgeting and investment tracking.' },
+    ],
+    German: [
+      { asTitle:'{W} Tracker & Finanzen',    asSub:'Dein {W} im Überblick',       asKw:'budget,ausgaben,geld,finanzen,tracker,ersparnisse,bank,einkommen,rechnungen,kasse', gpTitle:'{W} Tracker & Finanzen',gpDesc:'Budgets, Ausgaben & Einkommen in Echtzeit verfolgen. Smarte Einblicke.' },
+      { asTitle:'Smarter {W}-Manager',       asSub:'Mehr sparen, weniger Sorgen', asKw:'geld,manager,finanzen,sparen,investition,vermögen,einkommen,bank,kasse,ziele,reich',gpTitle:'Smarter {W}-Manager',   gpDesc:'Behalte deine Finanzen im Griff. Spare mehr & erreiche finanzielle Ziele.' },
+      { asTitle:'Finanz-Planer Pro',         asSub:'Finanzielle Freiheit erleben',asKw:'finanzen,planer,ziele,budget,einkommen,vermögen,investition,bank,ausgaben,reich',   gpTitle:'Finanz-Planer Pro',     gpDesc:'Erreiche finanzielle Freiheit. Smarte Budget- und Investitionsplanung.' },
+    ],
+    Portuguese: [
+      { asTitle:'{W} Tracker Financeiro',    asSub:'Acompanhe {W}s com Precisão', asKw:'orçamento,despesas,dinheiro,finanças,tracker,economia,banco,renda,contas,carteira', gpTitle:'{W} Tracker Financeiro',gpDesc:'Acompanhe orçamentos, despesas e renda em tempo real. Insights inteligentes.' },
+      { asTitle:'Gerenciador de {W}',        asSub:'Economize Mais Todo Mês',     asKw:'dinheiro,gerenciador,finanças,economizar,investimento,riqueza,renda,banco,metas',   gpTitle:'Gerenciador de {W}',    gpDesc:'Controle suas finanças. Economize mais e alcance suas metas financeiras.' },
+      { asTitle:'Planejador Financeiro',     asSub:'Sua Liberdade Financeira',    asKw:'finanças,planejador,metas,orçamento,renda,riqueza,investimento,banco,despesas',     gpTitle:'Planejador Financeiro', gpDesc:'Conquiste a liberdade financeira com planejamento inteligente de orçamento.' },
+    ],
+    Arabic: [
+      { asTitle:'تطبيق تتبع {W}',            asSub:'تابع {W}ك يومياً',            asKw:'ميزانية,مصاريف,مال,مالية,متتبع,ادخار,بنك,دخل,فواتير,محفظة',                       gpTitle:'تطبيق تتبع {W}',        gpDesc:'تتبع ميزانيتك ومصاريفك ودخلك بالوقت الفعلي. رؤى مالية ذكية.' },
+      { asTitle:'مدير {W} الذكي',             asSub:'وفر أكثر وأنفق بذكاء',        asKw:'مال,مدير,مالية,ادخار,استثمار,ثروة,دخل,بنك,أهداف,ميزانية',                         gpTitle:'مدير {W} الذكي',        gpDesc:'تحكم في ماليتك. وفر أكثر وحقق أهدافك المالية بشكل أسرع.' },
+      { asTitle:'مخطط مالي شخصي',            asSub:'حريتك المالية تبدأ هنا',       asKw:'مالية,مخطط,أهداف,ميزانية,دخل,ثروة,استثمار,بنك,مصاريف',                           gpTitle:'مخطط مالي شخصي',        gpDesc:'حقق حريتك المالية بالتخطيط الذكي للميزانية والاستثمار.' },
+    ],
+  },
+  health: {
+    English: [
+      { asTitle:'{W} Tracker & Journal',     asSub:'Your Daily {W} Log',          asKw:'health,fitness,tracker,wellness,workout,calories,steps,sleep,meditation,nutrition,diet', gpTitle:'{W} Tracker & Journal',gpDesc:'Track your health, workouts & wellness daily. Reach your fitness goals.' },
+      { asTitle:'Smart {W} Coach',           asSub:'Live Healthier Every Day',    asKw:'fitness,coach,wellness,health,workout,calories,sleep,steps,nutrition,habits,goals,fit',  gpTitle:'Smart {W} Coach',      gpDesc:'Your personal health coach. Build better habits & live a healthier life.' },
+      { asTitle:'Wellness & {W} App',        asSub:'Feel Your Best Every Day',    asKw:'wellness,health,mindful,fitness,sleep,nutrition,meditation,calm,steps,habits,body,mind',  gpTitle:'Wellness & {W} App',   gpDesc:'Improve your wellbeing with guided {W} tracking and daily health insights.' },
+    ],
+    German: [
+      { asTitle:'{W}-Tracker & Tagebuch',    asSub:'Dein täglicher {W}-Log',      asKw:'gesundheit,fitness,tracker,wellness,training,kalorien,schritte,schlaf,meditation,ernährung', gpTitle:'{W}-Tracker & Tagebuch',gpDesc:'Gesundheit, Training & Wellness täglich tracken. Fitness-Ziele erreichen.' },
+      { asTitle:'Smarter {W}-Coach',         asSub:'Täglich gesünder leben',      asKw:'fitness,coach,wellness,gesundheit,training,kalorien,schlaf,schritte,gewohnheiten,ziele',    gpTitle:'Smarter {W}-Coach',    gpDesc:'Dein persönlicher Gesundheits-Coach. Bessere Gewohnheiten aufbauen.' },
+      { asTitle:'Wellness & {W} App',        asSub:'Fühl dich jeden Tag besser',  asKw:'wellness,gesundheit,achtsamkeit,fitness,schlaf,ernährung,meditation,ruhe,gewohnheiten',    gpTitle:'Wellness & {W} App',   gpDesc:'Verbessere dein Wohlbefinden mit geführtem {W}-Tracking & Insights.' },
+    ],
+    Portuguese: [
+      { asTitle:'{W} Tracker & Diário',      asSub:'Seu Diário Diário de {W}',    asKw:'saúde,fitness,rastreador,bem-estar,treino,calorias,passos,sono,meditação,nutrição,dieta', gpTitle:'{W} Tracker & Diário',gpDesc:'Acompanhe saúde, treinos e bem-estar diariamente. Alcance suas metas.' },
+      { asTitle:'Coach de {W} Pessoal',      asSub:'Viva Mais Saudável Hoje',     asKw:'fitness,coach,bem-estar,saúde,treino,calorias,sono,passos,nutrição,hábitos,metas',        gpTitle:'Coach de {W} Pessoal',gpDesc:'Seu coach de saúde pessoal. Crie hábitos melhores e viva mais saudável.' },
+      { asTitle:'Bem-estar & {W} App',       asSub:'Sinta-se Melhor Todo Dia',    asKw:'bem-estar,saúde,mindfulness,fitness,sono,nutrição,meditação,calma,hábitos,corpo,mente',  gpTitle:'Bem-estar & {W} App', gpDesc:'Melhore seu bem-estar com rastreamento guiado de {W} e insights diários.' },
+    ],
+    Arabic: [
+      { asTitle:'متتبع {W} واليوميات',       asSub:'سجل {W}ك اليومي',             asKw:'صحة,لياقة,متتبع,عافية,تمرين,سعرات,خطوات,نوم,تأمل,تغذية,رياضة',                    gpTitle:'متتبع {W} واليوميات', gpDesc:'تتبع صحتك ولياقتك يومياً. حقق أهدافك الصحية والرياضية.' },
+      { asTitle:'مدرب {W} الذكي',             asSub:'عش حياة أكثر صحة يومياً',    asKw:'لياقة,مدرب,عافية,صحة,تمرين,سعرات,نوم,خطوات,تغذية,عادات,أهداف',                     gpTitle:'مدرب {W} الذكي',      gpDesc:'مدربك الصحي الشخصي. ابنِ عادات أفضل وعش حياة أكثر صحة.' },
+      { asTitle:'تطبيق العافية و{W}',         asSub:'اشعر بأفضل حال كل يوم',       asKw:'عافية,صحة,تأمل,لياقة,نوم,تغذية,راحة,عادات,جسم,عقل,يومي',                           gpTitle:'تطبيق العافية و{W}',  gpDesc:'حسّن رفاهيتك مع تتبع {W} الموجّه ورؤى الصحة اليومية.' },
+    ],
+  },
+  productivity: {
+    English: [
+      { asTitle:'{W} Manager & Planner',     asSub:'Get More Done Every Day',     asKw:'productivity,tasks,planner,organizer,todo,notes,focus,goals,habits,schedule,reminder,work', gpTitle:'{W} Manager & Planner',gpDesc:'Manage tasks, goals & habits in one place. Get more done every day.' },
+      { asTitle:'Focus & {W} Tracker',       asSub:'Stay On Track, Always',       asKw:'focus,tasks,productivity,planner,goals,habits,timer,todo,notes,schedule,reminder,deep',   gpTitle:'Focus & {W} Tracker',  gpDesc:'Stay focused and on track. Build habits, hit goals & boost productivity.' },
+      { asTitle:'Daily {W} Organizer',       asSub:'Your Personal Assistant',     asKw:'organizer,daily,tasks,planner,reminder,schedule,goals,habits,notes,focus,work,calendar',  gpTitle:'Daily {W} Organizer',  gpDesc:'Organize your day, manage tasks & reach goals faster. Your daily sidekick.' },
+    ],
+    German: [
+      { asTitle:'{W}-Manager & Planer',      asSub:'Täglich mehr erledigen',      asKw:'produktivität,aufgaben,planer,organizer,todo,notizen,fokus,ziele,gewohnheiten,zeitplan', gpTitle:'{W}-Manager & Planer', gpDesc:'Aufgaben, Ziele & Gewohnheiten an einem Ort verwalten. Mehr schaffen.' },
+      { asTitle:'Fokus & {W}-Tracker',       asSub:'Immer auf Kurs bleiben',      asKw:'fokus,aufgaben,produktivität,planer,ziele,gewohnheiten,timer,todo,notizen,zeitplan',    gpTitle:'Fokus & {W}-Tracker',  gpDesc:'Fokussiert bleiben und Ziele erreichen. Produktivität täglich steigern.' },
+      { asTitle:'Tages-{W}-Organizer',       asSub:'Dein persönlicher Assistent', asKw:'organizer,täglich,aufgaben,planer,erinnerung,zeitplan,ziele,gewohnheiten,notizen,fokus', gpTitle:'Tages-{W}-Organizer',  gpDesc:'Tag organisieren, Aufgaben managen & Ziele schneller erreichen.' },
+    ],
+    Portuguese: [
+      { asTitle:'Gerenciador de {W}',        asSub:'Faça Mais Cada Dia',          asKw:'produtividade,tarefas,planejador,organizador,todo,notas,foco,metas,hábitos,agenda,trabalho', gpTitle:'Gerenciador de {W}',gpDesc:'Gerencie tarefas, metas e hábitos em um lugar. Faça mais todos os dias.' },
+      { asTitle:'Foco & Rastreador de {W}',  asSub:'Mantenha-se no Caminho Certo',asKw:'foco,tarefas,produtividade,planejador,metas,hábitos,timer,todo,notas,agenda,trabalho',     gpTitle:'Foco & Rastreador de {W}',gpDesc:'Fique focado e no caminho certo. Construa hábitos e aumente a produtividade.' },
+      { asTitle:'Organizador Diário de {W}', asSub:'Seu Assistente Pessoal',      asKw:'organizador,diário,tarefas,planejador,lembrete,agenda,metas,hábitos,notas,foco,trabalho', gpTitle:'Organizador de {W}',  gpDesc:'Organize seu dia, gerencie tarefas e alcance metas mais rápido.' },
+    ],
+    Arabic: [
+      { asTitle:'مدير {W} والمخطط',          asSub:'أنجز أكثر كل يوم',            asKw:'إنتاجية,مهام,مخطط,منظم,قائمة,ملاحظات,تركيز,أهداف,عادات,جدول,تذكير,عمل',           gpTitle:'مدير {W} والمخطط',    gpDesc:'إدارة المهام والأهداف والعادات في مكان واحد. أنجز أكثر يومياً.' },
+      { asTitle:'تركيز ومتتبع {W}',          asSub:'ابقَ على المسار دائماً',       asKw:'تركيز,مهام,إنتاجية,مخطط,أهداف,عادات,مؤقت,قائمة,ملاحظات,جدول,تذكير',             gpTitle:'تركيز ومتتبع {W}',    gpDesc:'ابقَ مركزاً وعلى المسار. ابنِ عادات وحقق الأهداف وعزز الإنتاجية.' },
+      { asTitle:'منظم {W} اليومي',           asSub:'مساعدك الشخصي اليومي',        asKw:'منظم,يومي,مهام,مخطط,تذكير,جدول,أهداف,عادات,ملاحظات,تركيز,عمل',                   gpTitle:'منظم {W} اليومي',     gpDesc:'نظم يومك وأدر مهامك وحقق أهدافك أسرع. رفيقك اليومي.' },
+    ],
+  },
+  travel: {
+    English: [
+      { asTitle:'{W} Planner & Guide',       asSub:'Plan Your Perfect {W}',       asKw:'travel,trip,guide,planner,hotel,flight,booking,map,vacation,adventure,explore,city,tour', gpTitle:'{W} Planner & Guide', gpDesc:'Plan the perfect trip. Discover hotels, flights & must-see destinations.' },
+      { asTitle:'Explore & {W} Finder',      asSub:'Discover Amazing Places',     asKw:'explore,discover,travel,adventure,city,guide,map,tourism,attraction,vacation,local,trip',  gpTitle:'Explore & {W} Finder',gpDesc:'Discover amazing places & hidden gems. Your ultimate travel companion.' },
+      { asTitle:'Smart {W} Companion',       asSub:'Travel Smarter, Not Harder',  asKw:'travel,smart,companion,booking,trip,hotel,flight,guide,offline,map,review,tips,budget',   gpTitle:'Smart {W} Companion', gpDesc:'Travel smarter with AI-powered trip planning, maps & local recommendations.' },
+    ],
+    German: [
+      { asTitle:'{W}-Planer & Reiseführer',  asSub:'Plane deine perfekte {W}',    asKw:'reise,trip,reiseführer,planer,hotel,flug,buchung,karte,urlaub,abenteuer,entdecken,tour',  gpTitle:'{W}-Planer & Guide',  gpDesc:'Die perfekte Reise planen. Hotels, Flüge & Sehenswürdigkeiten entdecken.' },
+      { asTitle:'Entdecken & {W}-Finder',    asSub:'Tolle Orte entdecken',        asKw:'entdecken,reise,abenteuer,stadt,reiseführer,karte,tourismus,sehenswürdigkeit,urlaub,trip', gpTitle:'Entdecken & {W}-Finder',gpDesc:'Tolle Orte & versteckte Perlen entdecken. Dein ultimativer Reisebegleiter.' },
+      { asTitle:'Cleverer {W}-Begleiter',    asSub:'Klüger reisen, nicht schwerer',asKw:'reise,clever,begleiter,buchung,trip,hotel,flug,reiseführer,offline,karte,tipps,budget',   gpTitle:'Cleverer {W}-Begleiter',gpDesc:'Klüger reisen mit smarter Reiseplanung, Karten & lokalen Empfehlungen.' },
+    ],
+    Portuguese: [
+      { asTitle:'Planejador de {W}',         asSub:'Planeje sua {W} Perfeita',    asKw:'viagem,trip,guia,planejador,hotel,voo,reserva,mapa,férias,aventura,explorar,cidade,turismo', gpTitle:'Planejador de {W}',  gpDesc:'Planeje a viagem perfeita. Descubra hotéis, voos e destinos imperdíveis.' },
+      { asTitle:'Explorar & Guia de {W}',    asSub:'Descubra Lugares Incríveis',  asKw:'explorar,descobrir,viagem,aventura,cidade,guia,mapa,turismo,atração,férias,local,trip',     gpTitle:'Explorar & Guia de {W}',gpDesc:'Descubra lugares incríveis e tesouros escondidos. Seu guia de viagem.' },
+      { asTitle:'Companheiro de {W} Smart',  asSub:'Viaje Mais Inteligente',      asKw:'viagem,inteligente,companheiro,reserva,trip,hotel,voo,guia,offline,mapa,dicas,orçamento',  gpTitle:'Companheiro de {W}',  gpDesc:'Viaje de forma mais inteligente com planejamento e recomendações locais.' },
+    ],
+    Arabic: [
+      { asTitle:'مخطط {W} ودليل السفر',      asSub:'خطط لـ{W}تك المثالية',        asKw:'سفر,رحلة,دليل,مخطط,فندق,طيران,حجز,خريطة,عطلة,مغامرة,استكشاف,مدينة,سياحة',      gpTitle:'مخطط {W} ودليل السفر',gpDesc:'خطط للرحلة المثالية. اكتشف الفنادق والرحلات والوجهات الرائعة.' },
+      { asTitle:'استكشف ودليل {W}',          asSub:'اكتشف أماكن رائعة',           asKw:'استكشاف,اكتشاف,سفر,مغامرة,مدينة,دليل,خريطة,سياحة,معالم,عطلة,محلي,رحلة',          gpTitle:'استكشف ودليل {W}',    gpDesc:'اكتشف أماكن رائعة وكنوزاً مخفية. رفيقك المثالي للسفر.' },
+      { asTitle:'رفيق {W} الذكي',            asSub:'سافر بذكاء وسهولة أكبر',       asKw:'سفر,ذكي,رفيق,حجز,رحلة,فندق,طيران,دليل,خريطة,مراجعات,نصائح,ميزانية',             gpTitle:'رفيق {W} الذكي',      gpDesc:'سافر بذكاء مع تخطيط ذكي للرحلات وخرائط وتوصيات محلية.' },
+    ],
+  },
+  utilities: {
+    English: [
+      { asTitle:'{W} Tool & Manager',        asSub:'Fast, Simple & Reliable',     asKw:'tool,utility,scanner,manager,cleaner,fast,app,organizer,helper,converter,free,booster', gpTitle:'{W} Tool & Manager',  gpDesc:'Fast, reliable tools to manage, clean & optimize your device. Free.' },
+      { asTitle:'Smart {W} Optimizer',       asSub:'Boost Device Performance',    asKw:'device,optimizer,smart,performance,boost,cleaner,free,utility,fast,tool,efficient,top', gpTitle:'Smart {W} Optimizer', gpDesc:'Boost your device performance with smart, easy-to-use optimization tools.' },
+      { asTitle:'Power Utility Suite Pro',   asSub:'All-in-One Solution',         asKw:'utility,pro,power,advanced,professional,complete,tool,smart,best,toolkit,all-in-one',   gpTitle:'Power Utility Suite', gpDesc:'Professional all-in-one utility suite with powerful features for power users.' },
+    ],
+    German: [
+      { asTitle:'{W}-Tool & Manager',        asSub:'Schnell, Einfach & Sicher',   asKw:'tool,utility,scanner,manager,reiniger,schnell,app,organizer,helfer,konverter,gratis',   gpTitle:'{W}-Tool & Manager',  gpDesc:'Schnelle Tools zum Verwalten und Optimieren deines Geräts. Gratis.' },
+      { asTitle:'Cleverer {W}-Optimierer',   asSub:'Geräteleistung verbessern',   asKw:'gerät,optimierer,clever,leistung,boost,reiniger,gratis,utility,schnell,tool,effizient', gpTitle:'Cleverer {W}-Optimierer',gpDesc:'Geräteleistung mit cleveren, einfach zu bedienenden Optimierungstools steigern.' },
+      { asTitle:'Power Utility Suite Pro',   asSub:'Alles-in-Einem Lösung',       asKw:'utility,pro,power,profi,professionell,komplett,tool,smart,beste,toolkit,alles-in-einem',gpTitle:'Power Utility Suite', gpDesc:'Professionelle Alles-in-Einem-Utility-Suite mit leistungsstarken Funktionen.' },
+    ],
+    Portuguese: [
+      { asTitle:'Ferramenta & {W} Manager',  asSub:'Rápido, Simples & Seguro',    asKw:'ferramenta,utilitário,scanner,gerenciador,limpador,rápido,app,organizador,ajudante,grátis', gpTitle:'Ferramenta & {W} Manager',gpDesc:'Ferramentas rápidas e confiáveis para gerenciar e otimizar seu dispositivo.' },
+      { asTitle:'Otimizador Inteligente {W}',asSub:'Melhore o Desempenho',        asKw:'dispositivo,otimizador,inteligente,desempenho,boost,limpador,grátis,utilitário,rápido',  gpTitle:'Otimizador {W}',      gpDesc:'Melhore o desempenho do seu dispositivo com ferramentas de otimização.' },
+      { asTitle:'Power Utility Suite Pro',   asSub:'Solução Completa',            asKw:'utilitário,pro,poder,avançado,profissional,completo,ferramenta,smart,melhor,toolkit',    gpTitle:'Power Utility Suite', gpDesc:'Suite utilitária profissional completa com recursos poderosos para usuários.' },
+    ],
+    Arabic: [
+      { asTitle:'أداة {W} والمدير',          asSub:'سريع وبسيط وموثوق',           asKw:'أداة,مساعد,ماسح,مدير,منظف,سريع,تطبيق,منظم,مجاني,محوّل',                            gpTitle:'أداة {W} والمدير',    gpDesc:'أدوات سريعة وموثوقة لإدارة جهازك وتحسين أدائه. مجاني.' },
+      { asTitle:'محسّن {W} الذكي',           asSub:'عزز أداء جهازك الآن',          asKw:'جهاز,محسّن,ذكي,أداء,تعزيز,منظف,مجاني,أداة,سريع,فعّال',                              gpTitle:'محسّن {W} الذكي',     gpDesc:'عزز أداء جهازك بأدوات تحسين ذكية وسهلة الاستخدام.' },
+      { asTitle:'باور يوتيليتي برو',          asSub:'الحل الشامل المتكامل',         asKw:'أداة,احترافي,متقدم,شامل,ذكي,مدير,منظم,برو,الأفضل,مجموعة',                           gpTitle:'باور يوتيليتي سويت', gpDesc:'مجموعة أدوات احترافية متكاملة بميزات قوية لمستخدمي الطاقة.' },
+    ],
+  },
+};
+
+// ── Safety: trim to char limit at word/comma boundaries ──────────────────────
+function truncWords(s, max) {
+  if (!s || s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const sp  = cut.lastIndexOf(' ');
+  return (sp > max - 10 ? cut.slice(0, sp) : cut).replace(/[,\s]+$/, '');
+}
+function truncKw(s, max = 100) {
+  if (!s || s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const c   = cut.lastIndexOf(',');
+  return c > 0 ? cut.slice(0, c) : cut.slice(0, max);
+}
+
+// ── Core generation ───────────────────────────────────────────────────────────
+function detectFeature(desc, category) {
+  const patterns = FEAT_PATTERNS[category] || [];
+  for (const { key, re } of patterns) {
+    if (re.test(desc)) return key;
+  }
+  return '_default';
+}
+
+function getWord(category, key, lang) {
+  const map = FEAT_WORDS[category] || {};
+  const entry = map[key] || map['_default'] || {};
+  return entry[lang] || entry['English'] || '';
+}
+
+function applyW(s, w) {
+  return s.replace(/\{W\}/g, w);
+}
+
+function buildVariant(tmpl, w) {
+  return {
+    appstore_title:               truncWords(applyW(tmpl.asTitle,  w), 30),
+    appstore_subtitle:            truncWords(applyW(tmpl.asSub,    w), 30),
+    appstore_keywords:            truncKw(              tmpl.asKw,     100),
+    googleplay_title:             truncWords(applyW(tmpl.gpTitle || tmpl.asTitle, w), 30),
+    googleplay_short_description: truncWords(applyW(tmpl.gpDesc,   w), 80),
+  };
+}
+
+function generateVariants(category, language, description) {
+  const langKey = language || 'English';
+  const catData = TEMPLATES[category] || TEMPLATES.utilities;
+  const langData = catData[langKey] || catData['English'];
+
+  const featKey = detectFeature(description, category);
+  const w = getWord(category, featKey, langKey);
+
+  return langData.map(tmpl => buildVariant(tmpl, w));
+}
+
+// ── UI State ──────────────────────────────────────────────────────────────────
+let variants  = [];
+let activeTab = 0;
+
+function generate() {
+  const category    = document.getElementById('category').value;
+  const language    = document.getElementById('language').value;
+  const description = document.getElementById('description').value.trim();
+
+  hideError();
+  if (!description || description.length < 20) {
+    return showError('Please enter a short description of your app (2–3 sentences).');
+  }
+
+  setLoading(true);
+  setTimeout(() => {
+    try {
+      variants  = generateVariants(category, language, description);
+      activeTab = 0;
+      renderTabs();
+      renderVariant();
+    } catch (e) {
+      showError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, 420);
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+function renderTabs() {
+  const el = document.getElementById('variantTabs');
+  el.style.display = 'flex';
+  el.innerHTML = variants.map((_, i) =>
+    `<button class="tab${i === activeTab ? ' active' : ''}" onclick="switchTab(${i})">Variant ${i + 1}</button>`
+  ).join('');
+}
+
+function switchTab(i) {
+  activeTab = i;
+  renderTabs();
+  renderVariant();
+}
+
+function renderVariant() {
+  const v   = variants[activeTab];
+  const rtl = document.getElementById('language').value === 'Arabic';
+  document.getElementById('outputArea').innerHTML = `
+    <div class="platform-grid">
+      <div class="platform-panel">
+        <div class="platform-header">${svgApple()} App Store</div>
+        ${field('as_t', 'Title',    v.appstore_title,    30, false, rtl)}
+        ${field('as_s', 'Subtitle', v.appstore_subtitle, 30, false, rtl)}
+        ${field('as_k', 'Keywords', v.appstore_keywords, 100, true, rtl)}
+      </div>
+      <div class="platform-panel">
+        <div class="platform-header">${svgAndroid()} Google Play</div>
+        ${field('gp_t', 'Title',             v.googleplay_title,             30, false, rtl)}
+        ${field('gp_s', 'Short Description', v.googleplay_short_description, 80, true,  rtl)}
+      </div>
+    </div>`;
+}
+
+function field(id, label, value, limit, multi, rtl) {
+  value = value || '';
+  const safe  = esc(value);
+  const count = value.length;
+  const { cc, fc } = cls(count, limit);
+  const pct   = (Math.min(count / limit, 1) * 100).toFixed(1);
+  const over  = count > limit ? ' over' : '';
+  const dir   = rtl ? ' dir="rtl"' : '';
+
+  const inp = multi
+    ? `<textarea class="field-input${over}" id="${id}" rows="2" oninput="upd(this,${limit},'${id}_f','${id}_l')"${dir}>${safe}</textarea>`
+    : `<input type="text" class="field-input${over}" id="${id}" value="${safe}" oninput="upd(this,${limit},'${id}_f','${id}_l')"${dir} />`;
+
+  return `<div class="field">
+    <div class="field-meta">
+      <span class="field-label">${label}</span>
+      <button class="copy-btn" onclick="cp('${id}',this)">${svgCopy()} Copy</button>
+    </div>
+    ${inp}
+    <div class="count-row">
+      <div class="count-bar"><div class="count-fill ${fc}" id="${id}_f" style="width:${pct}%"></div></div>
+      <span class="count-label ${cc}" id="${id}_l">${count} / ${limit}</span>
+    </div>
+  </div>`;
+}
+
+function upd(el, limit, fId, lId) {
+  const count = el.value.length;
+  const { cc, fc } = cls(count, limit);
+  const pct = (Math.min(count / limit, 1) * 100).toFixed(1);
+  el.classList.toggle('over', count > limit);
+  const f = document.getElementById(fId); f.style.width = pct + '%'; f.className = `count-fill ${fc}`;
+  const l = document.getElementById(lId); l.textContent = `${count} / ${limit}`; l.className = `count-label ${cc}`;
+}
+
+function cls(count, limit) {
+  const r = count / limit;
+  if (r > 1)    return { cc: 'c-over', fc: 'f-over' };
+  if (r > 0.85) return { cc: 'c-warn', fc: 'f-warn' };
+  return              { cc: 'c-ok',   fc: 'f-ok'   };
+}
+
+function cp(id, btn) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.value).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = `${svgCheck()} Copied`;
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = `${svgCopy()} Copy`; }, 2000);
+  }).catch(() => {
+    const ta = Object.assign(document.createElement('textarea'), { value: el.value, style: 'position:fixed;opacity:0' });
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function setLoading(on) {
+  const btn = document.getElementById('genBtn');
+  btn.disabled = on;
+  document.getElementById('btnIcon').innerHTML = on ? '<div class="spin"></div>' : '✨';
+  document.getElementById('btnText').textContent = on ? 'Generating…' : 'Generate Metadata';
+  if (on) {
+    document.getElementById('outputArea').innerHTML = `<div class="placeholder"><div class="placeholder-icon">⚙️</div><h3>Building your metadata…</h3><p>Analysing description and applying templates</p></div>`;
+    document.getElementById('variantTabs').style.display = 'none';
+  }
+}
+function showError(m) { const e = document.getElementById('errorBox'); e.textContent = m; e.style.display = 'block'; }
+function hideError()   { document.getElementById('errorBox').style.display = 'none'; }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── SVG icons ─────────────────────────────────────────────────────────────────
+function svgApple()   { return `<svg width="18" height="18" viewBox="0 0 24 24" fill="#555"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.15-2.19 1.28-2.17 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>`; }
+function svgAndroid() { return `<svg width="18" height="18" viewBox="0 0 24 24" fill="#555"><path d="M3.18 23.76c.3.17.64.22.99.14l12.47-6.98L13.07 13.3 3.18 23.76zm-1.31-19.26C1.74 4.83 1.5 5.23 1.5 5.76v12.48c0 .53.24.93.37 1.26L13.07 8.29 1.87 4.5zM20.44 10.22 17.26 8.44l-3.62 3.56 3.62 3.56 3.18-1.78c.9-.52.9-1.78 0-2.56zM4.17 1.1l12.47 6.98-3.57 3.5L4.17 1.1z"/></svg>`; }
+function svgCopy()    { return `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`; }
+function svgCheck()   { return `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>`; }
+</script>
+</body>
+</html>
