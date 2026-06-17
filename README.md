@@ -7,6 +7,3 @@ Built with Claude Code.
 **Note:** This is a template-based version. A full AI-powered version with Anthropic API generates metadata based on actual app description.
 
 [Open the tool](https://mobilemarketerbr.github.io/aso-metadata-generator/aso-generator.html)
-```
-
-Потом нажми **Commit changes**. Готово.
